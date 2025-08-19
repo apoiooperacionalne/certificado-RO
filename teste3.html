@@ -65,6 +65,9 @@
         <label for="input-csv">Carregar dados via arquivo CSV:</label>
         <input type="file" id="input-csv" accept=".csv">
 
+        <label for="input-csv">Arquivo padrão CSV para preenchimento:</label>
+        <button id="btn-download-csv">Baixar CSV Padrão</button>
+
         <hr>
         <p>Ou preencha os dados manualmente:</p>
 
@@ -96,7 +99,7 @@
     </div>
 
     <!-- Imagem do crachá (oculta, será usada no PDF) -->
-    <img id="cracha" src="Imagem1.png">
+    <img id="cracha" src="/Imagem1.png">
 
     <script>
         const btnGenerate = document.querySelector("#generate");
@@ -380,12 +383,27 @@
             if (!escolhido) selectEl.value = "";
         }
 
+        const btnDownloadCSV = document.getElementById("btn-download-csv");
+
+        btnDownloadCSV.addEventListener("click", () => {
+            // Caminho do arquivo CSV que você enviou
+            const urlCSV = "/Pasta2.csv"; // ajuste se o arquivo estiver em outro diretório
+
+            alert('os dados estão de exemplo, apagar a primeira linha e preencher')
+            // Cria um link temporário para download
+            const link = document.createElement("a");
+            link.href = urlCSV;
+            link.setAttribute("download", "Pasta2.csv"); // nome do arquivo baixado
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
         inputData.valueAsDate = new Date(); // data atual
     </script>
 
 
 
 </body>
-
 
 </html>
