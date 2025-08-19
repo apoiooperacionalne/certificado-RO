@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gerador de PDF com pdfmake</title>
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js'></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: "Roboto", sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .forminho {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .forminho input,
+        .forminho select,
+        .forminho button {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+
+        .forminho button {
+            background-color: #004ea0;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+        }
+
+        .forminho button:hover {
+            background-color: #003b7a;
+        }
+
+        /* Oculta a imagem do crachá */
+        #cracha {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="forminho">
+        <h2>Gerador de Termo de Participação</h2>
+
+        <label for="input-csv">Carregar dados via arquivo CSV:</label>
+        <input type="file" id="input-csv" accept=".csv">
+
+        <hr>
+        <p>Ou preencha os dados manualmente:</p>
+
+        <select id="select-empresa">
+            <option value="">Selecione a empresa</option>
+            <option value="NE SEGURANÇA PRIVADA">NE SEGURANÇA PRIVADA</option>
+            <option value="NE GESTÃO DE MÃO DE OBRAS">NE GESTÃO DE MÃO DE OBRAS</option>
+        </select>
+
+        <input type="text" id="input-nome" placeholder="Nome do colaborador">
+        <input type="text" id="input-mat" placeholder="Matrícula (RA)">
+        <input type="text" id="input-cpf" placeholder="CPF do colaborador">
+
+        <select id="select-instrutor">
+            <option value="">Selecione o instrutor</option>
+            <option value="LAMARTINE BEZERRA DA SILVA|855.648.934-68">LAMARTINE BEZERRA DA SILVA</option>
+            <option value="EVANDO VIANA NUNES|076.666.734-00">EVANDO VIANA NUNES</option>
+            <option value="LEONARDO MARCILIANO DA SILVA|039.131.344-41">LEONARDO MARCILIANO DA SILVA</option>
+            <option value="MARCONDE FERREIRA DA SILVA PONTUAL|008.939.064-41">MARCONDE FERREIRA DA SILVA PONTUAL
+            </option>
+            <option value="ANDRESA DANIELLE NUNES BRAGA|032.747.294-42">ANDRESA DANIELLE NUNES BRAGA</option>
+            <option value="VERBER RODRIGUES DA SILVA|101.209.334-46">VERBER RODRIGUES DA SILVA</option>
+        </select>
+
+        <input type="text" id="input-cidade" placeholder="Cidade" value="Recife">
+        <input type="date" id="input-data">
+
+        <button id="generate">Gerar PDF Manual</button>
+    </div>
+
+    <!-- Imagem do crachá (oculta, será usada no PDF) -->
+    <img id="cracha" src="/Imagem1.png">
+
+    <script>
+        const btnGenerate = document.querySelector("#generate");
+        const selectEmpresa = document.querySelector("#select-empresa");
+        const inputNome = document.querySelector("#input-nome");
+        const inputMat = document.querySelector("#input-mat");
+        const inputCpf = document.querySelector("#input-cpf");
+        const selectInstrutor = document.querySelector("#select-instrutor");
+        const inputCidade = document.querySelector("#input-cidade");
+        const inputData = document.querySelector("#input-data");
+        const inputCSV = document.querySelector("#input-csv");
+
+        const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+        ];
+
+        const normalize = (s = '') => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+        const stripBOM = (s = '') => s.replace(/^\uFEFF/, '');
+
+        function getDataCompleta() {
+            const cidade = inputCidade.value || "Recife";
+            if (inputData.value) {
+                const [y, m, d] = inputData.value.split("-").map(n => parseInt(n, 10));
+                return `${cidade}, ${d} de ${meses[m - 1]} de ${y}.`;
+            }
+            return `${cidade}, _____ de ______________ de _______.`;
+        }
+
+        function getDadosDoFormulario() {
+            const [instrutorNome, instrutorCpf] = (selectInstrutor.value || "|").split("|");
+            return {
+                empresa: selectEmpresa.value.toUpperCase(),
+                nome: inputNome.value.toUpperCase(),
+                matricula: inputMat.value.toUpperCase(),
+                cpf: inputCpf.value,
+                instrutorNome: instrutorNome.toUpperCase(),
+                instrutorCpf: instrutorCpf,
+                dataCompleta: getDataCompleta()
+            };
+        }
+
+        async function getImageBase64(img) {
+            return new Promise((resolve, reject) => {
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("2d");
+
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                    const dataURL = canvas.toDataURL("image/png");
+                    resolve(dataURL);
+                };
+
+                img.onerror = reject;
+
+                if (img.complete && img.naturalHeight !== 0) img.onload();
+            });
+        }
+
+        // 🔹 Função para quebrar texto em várias linhas
+        function quebrarTexto(texto, tamanhoMax) {
+            const palavras = texto.split(" ");
+            const linhas = [];
+            let linhaAtual = "";
+
+            for (let palavra of palavras) {
+                if ((linhaAtual + palavra).length > tamanhoMax) {
+                    linhas.push(linhaAtual.trim());
+                    linhaAtual = palavra + " ";
+                } else {
+                    linhaAtual += palavra + " ";
+                }
+            }
+            if (linhaAtual.trim() !== "") {
+                linhas.push(linhaAtual.trim());
+            }
+            return linhas;
+        }
+
+        async function gerarPdfMake(dados) {
+            const img = document.getElementById("cracha");
+            const imgBase64 = await getImageBase64(img);
+
+            const content = [];
+
+            // 🔹 Empresa
+            let linhasEmpresa = quebrarTexto(dados.empresa, 30);
+            let posY = 250;
+            if (linhasEmpresa.length > 1) posY -= (linhasEmpresa.length - 1) * 7;
+            linhasEmpresa.forEach(l => {
+                content.push({ text: l, absolutePosition: { x: 155, y: posY }, fontSize: 14 });
+                posY += 14;
+            });
+
+            // 🔹 Nome do colaborador
+            let linhasNome = quebrarTexto(dados.nome, 30);
+            posY = 250;
+            if (linhasNome.length > 1) posY -= (linhasNome.length - 1) * 7;
+            linhasNome.forEach(l => {
+                content.push({ text: l, absolutePosition: { x: 460, y: posY }, fontSize: 12, bold: true });
+                posY += 14;
+            });
+
+            // 🔹 Matrícula
+            content.push({
+                text: dados.matricula,
+                absolutePosition: { x: 735, y: 250 },
+                fontSize: 14
+            });
+
+            // 🔹 CPF do colaborador
+            content.push({
+                text: dados.cpf,
+                absolutePosition: { x: 165, y: 535 },
+                fontSize: 13
+            });
+
+            // 🔹 Repetição do nome do colaborador
+            content.push({
+                text: dados.nome,
+                absolutePosition: { x: -430, y: 515 }, // canto superior da "caixa"
+                width: 200,                           // largura da caixa (ajuste conforme o espaço disponível)
+                fontSize: 14,
+                alignment: 'center',                  // centraliza dentro da caixa
+                bold: true
+            });
+
+            // 🔹 Instrutor (nome)
+            let linhasInstrutor = quebrarTexto(dados.instrutorNome, 30);
+            posY = 515;
+            if (linhasInstrutor.length > 1) posY -= (linhasInstrutor.length - 1) * 7;
+            linhasInstrutor.forEach(l => {
+                content.push({ text: l, absolutePosition: { x: 545, y: posY }, fontSize: 14 });
+                posY += 14;
+            });
+
+            // 🔹 Instrutor (CPF)
+            content.push({
+                text: dados.instrutorCpf,
+                absolutePosition: { x: 590, y: posY + 5 },
+                fontSize: 13,
+            });
+
+            // 🔹 Data e cidade
+            let linhasData = quebrarTexto(dados.dataCompleta, 40);
+            posY = 450;
+            if (linhasData.length > 1) posY -= (linhasData.length - 1) * 7;
+            linhasData.forEach(l => {
+                content.push({ text: l, absolutePosition: { x: 340, y: posY }, fontSize: 12 });
+                posY += 14;
+            });
+
+            const docDefinition = {
+                pageSize: 'A4',
+                pageOrientation: 'landscape',
+                pageMargins: 0,
+                background: { image: imgBase64, width: 842, height: 600 },
+                content: content
+            };
+
+            pdfMake.createPdf(docDefinition).download(`${dados.nome || 'termo'}.pdf`);
+        }
+
+        btnGenerate.addEventListener("click", () => {
+            const data = getDadosDoFormulario();
+            if (!data.nome) {
+                alert("Por favor, preencha o nome do colaborador.");
+                return;
+            }
+            gerarPdfMake(data);
+        });
+
+        // --- CSV ---
+        inputCSV.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const texto = await file.text();
+            const rows = parseCSV(stripBOM(texto));
+            if (rows.length < 2) { alert("CSV vazio ou sem dados."); return; }
+
+            const headers = rows[0];
+            const idx = mapearCabecalhos(headers);
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+
+                const instrutorNomeCsv = idx.instrutor !== -1 ? row[idx.instrutor] : "";
+                selecionarPorTexto(selectInstrutor, instrutorNomeCsv);
+
+                const empresaCsv = idx.empresa !== -1 ? row[idx.empresa] : "";
+                selecionarPorTexto(selectEmpresa, empresaCsv);
+
+                const [instrutorNome, instrutorCpf] = (selectInstrutor.value || "|").split("|");
+                const dataISO = idx.data !== -1 ? toISODate(row[idx.data]) : "";
+                inputData.value = dataISO;
+
+                const dadosParaPdf = {
+                    empresa: (selectEmpresa.value || empresaCsv).toUpperCase(),
+                    nome: (idx.nome !== -1 ? row[idx.nome] : "").toUpperCase(),
+                    matricula: (idx.matricula !== -1 ? row[idx.matricula] : "").toUpperCase(),
+                    cpf: idx.cpf !== -1 ? row[idx.cpf] : "",
+                    instrutorNome: instrutorNome.toUpperCase(),
+                    instrutorCpf: instrutorCpf,
+                    dataCompleta: getDataCompleta()
+                };
+
+                await gerarPdfMake(dadosParaPdf);
+                await new Promise(res => setTimeout(res, 300));
+            }
+
+            alert("Geração de PDFs a partir do CSV concluída!");
+        });
+
+        function detectarDelimitador(linha) {
+            const candidatos = [",", ";", "\t"];
+            let melhor = ",", max = -1;
+            for (const d of candidatos) {
+                const qtd = (linha.match(new RegExp(`\\${d}`, 'g')) || []).length;
+                if (qtd > max) { max = qtd; melhor = d; }
+            }
+            return melhor;
+        }
+
+        function parseCSV(texto) {
+            const linhas = texto.split(/\r?\n/).filter(l => l.trim().length > 0);
+            if (linhas.length === 0) return [];
+            const delim = detectarDelimitador(linhas[0]);
+            const rows = [];
+            for (const linha of linhas) {
+                const out = []; let cur = "", emAspas = false;
+                for (let i = 0; i < linha.length; i++) {
+                    const ch = linha[i];
+                    if (ch === '"') {
+                        if (emAspas && linha[i + 1] === '"') { cur += '"'; i++; } else emAspas = !emAspas;
+                    } else if (ch === delim && !emAspas) { out.push(cur); cur = ""; } else cur += ch;
+                }
+                out.push(cur); rows.push(out.map(s => s.trim()));
+            }
+            return rows;
+        }
+
+        function mapearCabecalhos(headers) {
+            const alvo = {
+                empresa: ['empresa', 'nome_empresa', 'empresa_razao'],
+                nome: ['nome', 'colaborador', 'funcionario'],
+                matricula: ['matricula', 'ra', 'registro'],
+                cpf: ['cpf', 'cpf_colaborador'],
+                instrutor: ['instrutor', 'colaborador_instrutor', 'nome_instrutor'],
+                cidade: ['cidade', 'local', 'municipio'],
+                data: ['data', 'data_treino', 'data_assinatura']
+            };
+            const normHeaders = headers.map(h => normalize(stripBOM(h)));
+            const idx = {};
+            for (const chave in alvo) {
+                idx[chave] = -1;
+                for (const alias of alvo[chave]) {
+                    const pos = normHeaders.indexOf(normalize(alias));
+                    if (pos !== -1) { idx[chave] = pos; break; }
+                }
+            }
+            return idx;
+        }
+
+        function toISODate(val) {
+            if (!val) return "";
+            const v = val.trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+            const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (m) { const [_, dd, mm, yyyy] = m; return `${yyyy}-${mm}-${dd}`; }
+            return "";
+        }
+
+        function selecionarPorTexto(selectEl, texto) {
+            const alvo = normalize(texto || ""); let escolhido = false;
+            for (const opt of Array.from(selectEl.options)) {
+                if (normalize(opt.textContent) === alvo || normalize(opt.value) === alvo) {
+                    selectEl.value = opt.value; escolhido = true; break;
+                }
+            }
+            if (!escolhido) selectEl.value = "";
+        }
+
+        inputData.valueAsDate = new Date(); // data atual
+    </script>
+
+
+
+</body>
+
+</html>
