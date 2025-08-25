@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+'<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -90,6 +90,26 @@
             </option>
             <option value="ANDRESA DANIELLE NUNES BRAGA|032.747.294-42">ANDRESA DANIELLE NUNES BRAGA</option>
             <option value="VERBER RODRIGUES DA SILVA|101.209.334-46">VERBER RODRIGUES DA SILVA</option>
+            <option value="WILLSON EVANGELISTA DA SILVA|881.371.204-91">WILLSON EVANGELISTA DA SILVA</option>
+            <option value="VALERIO DE FREITAS SANTOS|035.090.184-86">VALERIO DE FREITAS SANTOS</option>
+            <option value="THIAGO FERREIRA DA SILVA|072.256.064-84">THIAGO FERREIRA DA SILVA</option>
+            <option value="SERGIANO JOSE DA SILVA SANTOS|044.745.305-00">SERGIANO JOSE DA SILVA SANTOS</option>
+            <option value="GERAILSON NASCIMENTO DA SILVA|016.202.544-">GERAILSON NASCIMENTO DA SILVA</option>
+            <option value="HUGO ASSIS DA SILVA|064.270.771-55">HUGO ASSIS DA SILVA</option>
+            <option value="JOELSON DE OLIVEIRA SILVA|109.597.414-96">JOELSON DE OLIVEIRA SILVA</option>
+            <option value="TACIO WESLEY FERREIRA BRUNO|063.870.235-64">TACIO WESLEY FERREIRA BRUNO</option>
+            <option value="VANTAIR HAUPENTHAL|020.671.049-69">VANTAIR HAUPENTHAL</option>
+            <option value="RONALDO BARBOSA DA SILVA|913.953.304-25">RONALDO BARBOSA DA SILVA</option>
+            <option value="JOAO PAULO DA SILVA|034.442.424-33">JOAO PAULO DA SILVA</option>
+            <option value="BRAZ FERREIRA DE LIMA NETO|042.322.114-03">BRAZ FERREIRA DE LIMA NETO</option>
+            <option value="JADSON DELANO GOMES DOS SANTOS|099.490.104-62">JADSON DELANO GOMES DOS SANTOS</option>
+            <option value="GENILSON MIGUEL EUGENIO|739.324.003-30">GENILSON MIGUEL EUGENIO</option>
+            <option value="JEFERSON FERREIRA DOS SANTOS|068.354.204-48">JEFERSON FERREIRA DOS SANTOS</option>
+            <option value="RODRIGO RAFAEL RODRIGUES FERREIRA DOS SANTOS|041.328.064-05">RODRIGO RAFAEL RODRIGUES
+                FERREIRA DOS SANTOS</option>
+            <option value="JAMES FRANCISCO DA SILVA|105.632.554-20">JAMES FRANCISCO DA SILVA</option>
+            <option value="GLEIBSON FERREIRA DA SILVA|112.397.664-32">GLEIBSON FERREIRA DA SILVA</option>
+            <option value="WADSON SANTANA SOUZA|055.172.935-06">WADSON SANTANA SOUZA</option>
         </select>
 
         <input type="text" id="input-cidade" placeholder="Cidade" value="Recife">
@@ -229,18 +249,19 @@
             });
 
             // 🔹 Instrutor (nome)
-            let linhasInstrutor = quebrarTexto(dados.instrutorNome, 30);
-            posY = 515;
-            if (linhasInstrutor.length > 1) posY -= (linhasInstrutor.length - 1) * 7;
-            linhasInstrutor.forEach(l => {
-                content.push({ text: l, absolutePosition: { x: 545, y: posY }, fontSize: 14 });
-                posY += 14;
+            content.push({
+                text: dados.instrutorNome,
+                absolutePosition: { x: 450, y: 515 }, // posição inicial
+                width: 300,                           // largura disponível
+                fontSize: 14,
+                alignment: 'center',                  // centraliza dentro da caixa
+                noWrap: true                          // impede quebra automática
             });
 
             // 🔹 Instrutor (CPF)
             content.push({
                 text: dados.instrutorCpf,
-                absolutePosition: { x: 590, y: posY + 5 },
+                absolutePosition: { x: 590, y: 535 },
                 fontSize: 13,
             });
 
@@ -386,7 +407,7 @@
         const btnDownloadCSV = document.getElementById("btn-download-csv");
 
         btnDownloadCSV.addEventListener("click", () => {
-             alert('os dados estão de exemplo, apagar a primeira linha e preencher')
+            alert('os dados estão de exemplo, apagar a primeira linha e preencher')
             const csvContent = `empresa,nome,matricula,cpf,instrutor,cidade,data
 NE SEGURANCA PRIVADA,Joao Silva,12345,11122233344,Lamartine Bezerra,Recife,2025-08-19`;
 
@@ -407,7 +428,4 @@ NE SEGURANCA PRIVADA,Joao Silva,12345,11122233344,Lamartine Bezerra,Recife,2025-
 
 </body>
 
-</html>
-
-
-
+</html>'
